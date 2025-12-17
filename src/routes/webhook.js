@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { Octokit } = require('@octokit/rest');
 const { createAppAuth } = require('@octokit/auth-app');
@@ -56,7 +55,7 @@ router.post('/', express.json(), async (req, res) => {
         });
 
         // 获取 Octokit 实例
-        const octokit = new Octokit({ authStrategy: createAppAuth, auth });
+        const octokit = new Octokit({ auth });
 
         // 获取 PR 详情
         const prDetails = await octokit.pulls.get({
@@ -91,3 +90,4 @@ router.post('/', express.json(), async (req, res) => {
 });
 
 module.exports = router;
+
