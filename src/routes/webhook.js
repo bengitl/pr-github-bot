@@ -8,6 +8,15 @@ const webhooks = new Webhooks({ secret: githubConfig.webhookSecret });
 
 webhooks.on('pull_request.opened', githubController.handlePullRequestOpened);
 
+router.post('/', (req, res) => {
+  // 处理 GitHub Webhook
+  res.status(200).send('Webhook received');
+});
+
+router.get('/', (req, res) => {
+  res.status(200).send('This endpoint only accepts POST requests from GitHub Webhook.');
+});
+
 router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   webhooks.verifyAndReceive({ id: req.headers['x-github-delivery'], name: req.headers['x-github-event'], signature: req.headers['x-hub-signature-256'] }, req.body)
     .then(() => res.status(200).send('OK'))
@@ -15,3 +24,4 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
 });
 
 module.exports = router;
+
