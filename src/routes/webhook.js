@@ -1,3 +1,4 @@
+
 const express = require('express');
 const { Octokit } = require('@octokit/rest');
 const { createAppAuth } = require('@octokit/auth-app');
@@ -19,17 +20,35 @@ router.post('/', express.json(), async (req, res) => {
       const action = payload.action;
       const prNumber = payload.pull_request.number;
       const prTitle = payload.pull_request.title;
+      const repoOwner = payload.repository.owner.login;
+      const repoName = payload.repository.name;
+
       console.log(`Pull Request #${prNumber} ${action}: ${prTitle}`);
 
       if (action === 'opened') {
-        // 获取安装 ID
-        const installationId = payload.installation.id;
-        if (!installationId) {
-          console.error('Installation ID not found in payload');
-          return res.status(400).send('Bad Request: Installation ID not found');
+        // 创建认证对象（无 installationId）
+        const appOctokit = new Octokit({
+          authStrategy: createAppAuth,
+          auth: {
+            appId: githubConfig.appId,
+            privateKey: githubConfig.privateKey,
+          },
+        });
+
+        // 获取仓库的安装 ID
+        const installations = await appOctokit.apps.listInstallations();
+        const installation = installations.data.find(inst =>
+          inst.account.login === repoOwner
+        );
+
+        if (!installation) {
+          console.error('Installation not found for repository owner:', repoOwner);
+          return res.status(400).send('Bad Request: Installation not found');
         }
 
-        // 创建认证对象
+        const installationId = installation.id;
+
+        // 使用 installationId 创建认证
         const auth = createAppAuth({
           appId: githubConfig.appId,
           privateKey: githubConfig.privateKey,
@@ -41,8 +60,8 @@ router.post('/', express.json(), async (req, res) => {
 
         // 获取 PR 详情
         const prDetails = await octokit.pulls.get({
-          owner: payload.repository.owner.login,
-          repo: payload.repository.name,
+          owner: repoOwner,
+          repo: repoName,
           pull_number: prNumber,
         });
 
@@ -51,8 +70,8 @@ router.post('/', express.json(), async (req, res) => {
 
         // 在 PR 下添加评论
         await octokit.issues.createComment({
-          owner: payload.repository.owner.login,
-          repo: payload.repository.name,
+          owner: repoOwner,
+          repo: repoName,
           issue_number: prNumber,
           body: `## AI Generated Summary\n\n${summary}`,
         });
@@ -72,4 +91,3 @@ router.post('/', express.json(), async (req, res) => {
 });
 
 module.exports = router;
-
