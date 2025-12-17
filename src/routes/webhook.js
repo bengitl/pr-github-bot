@@ -54,8 +54,12 @@ router.post('/', express.json(), async (req, res) => {
           installationId: installationId,
         });
 
-        // 获取 Octokit 实例
-        const octokit = new Octokit({ auth });
+        // 获取访问令牌
+        const token = await auth();
+        console.log('Access token:', token.token);
+
+        // 使用访问令牌创建 Octokit 实例
+        const octokit = new Octokit({ auth: token.token });
 
         // 获取 PR 详情
         const prDetails = await octokit.pulls.get({
@@ -90,4 +94,5 @@ router.post('/', express.json(), async (req, res) => {
 });
 
 module.exports = router;
+
 
