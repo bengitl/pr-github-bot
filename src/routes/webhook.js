@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { Octokit } = require('@octokit/rest');
 const { createAppAuth } = require('@octokit/auth-app');
@@ -6,10 +5,6 @@ const githubConfig = require('../config/github');
 const modelscopeController = require('../controllers/modelscope');
 
 const router = express.Router();
-const octokit = new Octokit({
-  authStrategy: createAppAuth,
-  auth: githubConfig,
-});
 
 // 使用 express.json() 解析 JSON 请求体
 router.post('/', express.json(), async (req, res) => {
@@ -20,11 +15,6 @@ router.post('/', express.json(), async (req, res) => {
     console.log('Received payload:', payload);
     console.log('Event type:', event);
 
-    // 验证签名（可选）
-    const signature = req.headers['x-hub-signature-256'];
-    console.log('Signature:', signature);
-
-    // 处理 Pull Request 事件
     if (event === 'pull_request') {
       const action = payload.action;
       const prNumber = payload.pull_request.number;
@@ -32,6 +22,23 @@ router.post('/', express.json(), async (req, res) => {
       console.log(`Pull Request #${prNumber} ${action}: ${prTitle}`);
 
       if (action === 'opened') {
+        // 获取安装 ID
+        const installationId = payload.installation.id;
+        if (!installationId) {
+          console.error('Installation ID not found in payload');
+          return res.status(400).send('Bad Request: Installation ID not found');
+        }
+
+        // 创建认证对象
+        const auth = createAppAuth({
+          appId: githubConfig.appId,
+          privateKey: githubConfig.privateKey,
+          installationId: installationId,
+        });
+
+        // 获取 Octokit 实例
+        const octokit = new Octokit({ authStrategy: createAppAuth, auth });
+
         // 获取 PR 详情
         const prDetails = await octokit.pulls.get({
           owner: payload.repository.owner.login,
@@ -65,3 +72,4 @@ router.post('/', express.json(), async (req, res) => {
 });
 
 module.exports = router;
+
