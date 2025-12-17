@@ -19,13 +19,15 @@ router.post('/', express.json(), async (req, res) => {
       const action = payload.action;
       const prNumber = payload.pull_request.number;
       const prTitle = payload.pull_request.title;
-      const repoOwner = payload.repository.owner.login;
-      const repoName = payload.repository.name;
+
+      // 使用您现有的仓库信息
+      const repoOwner = 'bengitl';  // 替换为您的 GitHub 用户名
+      const repoName = 'pr-github-bot';  // 替换为您的仓库名
 
       console.log(`Pull Request #${prNumber} ${action}: ${prTitle}`);
 
       if (action === 'opened') {
-        // 创建认证对象（无 installationId）
+        // 创建认证对象
         const appOctokit = new Octokit({
           authStrategy: createAppAuth,
           auth: {
@@ -34,18 +36,23 @@ router.post('/', express.json(), async (req, res) => {
           },
         });
 
-        // 获取仓库的安装 ID
+        // 获取所有安装
         const installations = await appOctokit.apps.listInstallations();
+        console.log('Installations:', installations.data);
+
+        // 查找匹配的安装
         const installation = installations.data.find(inst =>
           inst.account.login === repoOwner
         );
 
         if (!installation) {
           console.error('Installation not found for repository owner:', repoOwner);
+          console.error('Available installations:', installations.data.map(inst => inst.account.login));
           return res.status(400).send('Bad Request: Installation not found');
         }
 
         const installationId = installation.id;
+        console.log('Installation ID:', installationId);
 
         // 使用 installationId 创建认证
         const auth = createAppAuth({
@@ -55,11 +62,12 @@ router.post('/', express.json(), async (req, res) => {
         });
 
         // 获取访问令牌
-        const token = await auth();
-        console.log('Access token:', token.token);
+        const tokenResponse = await auth({ type: 'installation' });
+        const token = tokenResponse.token;
+        console.log('Access token:', token);
 
         // 使用访问令牌创建 Octokit 实例
-        const octokit = new Octokit({ auth: token.token });
+        const octokit = new Octokit({ auth: token });
 
         // 获取 PR 详情
         const prDetails = await octokit.pulls.get({
@@ -94,5 +102,3 @@ router.post('/', express.json(), async (req, res) => {
 });
 
 module.exports = router;
-
-
