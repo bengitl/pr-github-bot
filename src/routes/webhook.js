@@ -1,26 +1,21 @@
 const express = require('express');
-const { Webhooks } = require('@octokit/webhooks');
-const githubController = require('../controllers/github');
-const githubConfig = require('../config/github');
-
 const router = express.Router();
-const webhooks = new Webhooks({ secret: githubConfig.webhookSecret });
 
-webhooks.on('pull_request.opened', githubController.handlePullRequestOpened);
+// 使用 express.raw 以接收原始请求体
+router.post('/', express.raw({ type: 'application/json' }), (req, res) => {
+  try {
+    const payload = JSON.parse(req.body.toString());
+    console.log('Received payload:', payload);
 
-router.post('/', (req, res) => {
-  // 处理 GitHub Webhook
-  res.status(200).send('Webhook received');
-});
+    // 签名验证（可选）
+    const signature = req.headers['x-hub-signature-256'];
+    console.log('Signature:', signature);
 
-router.get('/', (req, res) => {
-  res.status(200).send('This endpoint only accepts POST requests from GitHub Webhook.');
-});
-
-router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
-  webhooks.verifyAndReceive({ id: req.headers['x-github-delivery'], name: req.headers['x-github-event'], signature: req.headers['x-hub-signature-256'] }, req.body)
-    .then(() => res.status(200).send('OK'))
-    .catch(() => res.status(400).send('Error'));
+    res.status(200).send('Webhook received');
+  } catch (error) {
+    console.error('Error parsing payload:', error);
+    res.status(400).send('Bad Request: Invalid payload');
+  }
 });
 
 module.exports = router;
