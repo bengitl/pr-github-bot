@@ -32,8 +32,9 @@ async function generateSummary(prDetails) {
       }
     );
 
-    console.log('ModelScope API Response:', response.data);
-    return response.data.output.text;
+    console.log('Mistral API Response:', JSON.stringify(response.data, null, 2));
+    // 根据实际数据结构修改
+    return response.data.choices[0].message.content;
   } catch (error) {
     console.error('Error calling ModelScope API:', error.response?.data || error.message);
     throw error;
@@ -43,4 +44,5 @@ async function generateSummary(prDetails) {
 module.exports = {
   generateSummary,
 };
+
 
