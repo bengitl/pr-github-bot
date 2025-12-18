@@ -17,13 +17,12 @@ async function generateSummary(prDetails) {
       modelscopeConfig.apiUrl,
       {
         model: modelscopeConfig.model,
-        input: {
-          prompt: prompt,
-        },
-        parameters: {
-          max_tokens: 512,
-          temperature: 0.7,
-        },
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
       },
       {
         headers: {
@@ -44,3 +43,4 @@ async function generateSummary(prDetails) {
 module.exports = {
   generateSummary,
 };
+
