@@ -1,5 +1,5 @@
 # PR AI Summary Bot
-
+author：ben
 A GitHub App that automatically generates AI summaries for new Pull Requests.
 
 ## Features
